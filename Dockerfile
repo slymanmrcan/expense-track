@@ -19,7 +19,7 @@ COPY prisma ./prisma/
 
 # Use cache mount to speed up installation
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+    npm ci --legacy-peer-deps
 
 # -------------------------
 # Build
