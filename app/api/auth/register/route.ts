@@ -8,7 +8,18 @@ export async function POST(request: NextRequest) {
   try {
 
 
-    const { firstName, lastName, email, username, password } = await request.json()
+    const { firstName, lastName, email, username, password, verificationCode } = await request.json()
+
+    // 1. Env kontrolü (Yoksa varsayılan kodu kullan)
+    const validCode = process.env.REGISTRATION_CODE || '314159265'
+
+    // 2. Kod kontrolü
+    if (verificationCode !== validCode) {
+      return NextResponse.json(
+        { error: 'Geçersiz davet kodu' },
+        { status: 403 }
+      )
+    }
 
     if (!firstName || !lastName || !email || !username || !password) {
       return NextResponse.json(

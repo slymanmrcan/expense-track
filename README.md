@@ -7,48 +7,46 @@ Kişisel gelir/gider takibi için Next.js full-stack uygulama.
 - ✅ Gelir ve gider kaydı (40+ kategori)
 - ✅ Aylık istatistikler ve grafikler
 - ✅ Lokasyon bilgisi (opsiyonel)
-- ✅ Basit auth sistemi
-- ✅ Mobil uyumlu tasarım
+- ✅ **Güvenli Davet Kodlu Kayıt Sistemi**
+- ✅ Mobil uyumlu tasarım (PWA)
 - ✅ Docker Compose desteği
-- ✅ ENV'den kullanıcı yapılandırması
 
 ---
 
 ## 🚀 Hızlı Başlangıç (Docker Compose) - ÖNERİLEN
 
-Bu yöntem, hem uygulamayı hem de PostgreSQL veritabanını tek komutla kurar ve çalıştırır.
-
 ### Adım 1: Projeyi İndir
 
 ```bash
-git clone https://github.com/kullaniciadi/expenseTrack.git
+git clone https://github.com/slymanmrcan/expense-track.git
 cd expenseTrack
 ```
 
 ### Adım 2: Environment Ayarlarını Yap
 
-`.env` dosyası oluşturun ve aşağıdaki içeriği (kendinize göre düzenleyerek) yapıştırın:
+`.env` dosyası oluşturun:
 
 ```bash
-# Şifreler için güçlü değerler kullanın!
 cat > .env << 'EOF'
-# PostgreSQL
-POSTGRES_PASSWORD=GucluDbSifresi123
+# PostgreSQL Şifresi
+POSTGRES_PASSWORD=BURAYA_GUCLU_BIR_SIFRE_YAZ
 
-# App
-JWT_SECRET=RastgeleUzunBirStringUretipBurayaYazin
+# JWT Secret (openssl rand -base64 32 ile üret)
+JWT_SECRET=BURAYA_RASTGELE_UZUN_STRING
+
+# Davet Kodu (Kayıt olurken girilecek gizli kod)
+REGISTRATION_CODE=BURAYA_GIZLI_DAVET_KODU
+
+# App İsmi (Opsiyonel)
 NEXT_PUBLIC_APP_NAME="Harcama Takip"
-
-# Admin Kullanıcı (İlk kurulumda oluşturulur)
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=GucluAdminSifresi123
-ADMIN_EMAIL=admin@example.com
-ADMIN_FIRSTNAME=Admin
-ADMIN_LASTNAME=User
 EOF
 ```
 
-> **Önemli:** `JWT_SECRET` için rastgele bir değer kullanın (`openssl rand -base64 32`).
+**Önemli Notlar:**
+
+- `POSTGRES_PASSWORD`: Veritabanı şifresi, güçlü bir şifre belirleyin
+- `JWT_SECRET`: `openssl rand -base64 32` komutu ile üretebilirsiniz
+- `REGISTRATION_CODE`: Sadece bu kodu bilenler kayıt olabilir (örnek: `MySecret2024`)
 
 ### Adım 3: Çalıştır
 
@@ -58,19 +56,19 @@ docker compose up -d
 
 Bu komut:
 
-1. PostgreSQL veritabanını başlatır.
-2. Uygulamayı build eder ve başlatır.
-3. Otomatik olarak veritabanı tablolarını oluşturur (`db push`).
-4. Varsayılan kategorileri ve admin kullanıcısını ekler (`seed`).
+1. PostgreSQL veritabanını başlatır
+2. Uygulamayı build eder ve başlatır
+3. Otomatik olarak veritabanı tablolarını oluşturur
+4. Varsayılan kategorileri ekler (Market, Maaş, vb.)
 
-### Adım 4: Uygulamaya Eriş
+### Adım 4: İlk Kullanıcıyı Oluştur
 
 Tarayıcıda açın: **http://localhost:3000**
 
-Giriş bilgileri (`.env` dosyasında belirledikleriniz):
-
-- **Kullanıcı Adı:** `admin`
-- **Şifre:** `GucluAdminSifresi123`
+1. "Kayıt Ol" butonuna tıklayın
+2. Bilgilerinizi girin
+3. **Doğrulama Kodu** alanına `.env` dosyasında belirlediğiniz `REGISTRATION_CODE` değerini girin
+4. Kayıt olun ve giriş yapın
 
 ---
 
@@ -100,57 +98,47 @@ docker compose logs -f app
 docker compose exec app sh
 ```
 
-### Manuel Seed Çalıştırma (Gerekirse)
-
-Eğer kategoriler gelmediyse:
-
-```bash
-docker compose exec app npx prisma db seed
-```
-
 ---
 
-## 📱 Mobil Erişim (Local Network)
+## 📱 Mobil Erişim (PWA)
 
-Aynı ağdaki telefonunuzdan erişmek için bilgisayarınızın local IP adresini kullanın.
+Bu uygulama Progressive Web App (PWA) uyumludur. Telefondan tarayıcı ile girdiğinizde "Ana Ekrana Ekle" diyerek bir uygulama gibi kullanabilirsiniz.
 
-1. **IP Adresini Bul:**
+**Aynı ağdaki cihazlardan erişim:**
 
-   ```bash
-   # Mac/Linux
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-   # Veya ayarlar -> Ağ kısmından bakabilirsiniz.
-   ```
+```bash
+# Bilgisayarınızın IP adresini bulun
+ifconfig | grep "inet " | grep -v 127.0.0.1
 
-2. **Telefondan Aç:**
-   `http://192.168.1.XX:3000` (XX yerine kendi IP sonunuz gelecek)
+# Telefondan şu şekilde erişin:
+# http://192.168.1.XX:3000
+```
 
 ---
 
 ## 💻 Geliştirici Modu (Local Kurulum)
 
-Docker kullanmadan, doğrudan geliştirmek isterseniz:
-
 ### Gereksinimler
 
 - Node.js 18+
-- PostgreSQL (veya Docker ile sadece db çalıştırabilirsiniz)
+- PostgreSQL
 
-### 1. Bağımlılıkları Yükle
+### Kurulum
 
 ```bash
 npm install
 ```
 
-### 2. .env Ayarla
+### .env Ayarla
 
 ```env
 DATABASE_URL="postgresql://postgres:sifre@localhost:5432/expense_track?schema=public"
 JWT_SECRET="gizli-anahtar"
-# ... diğer ayarlar
+REGISTRATION_CODE="davet-kodu"
+NEXT_PUBLIC_APP_NAME="Harcama Takip"
 ```
 
-### 3. Veritabanını Hazırla
+### Veritabanını Hazırla
 
 ```bash
 npx prisma generate
@@ -158,11 +146,22 @@ npx prisma db push
 npx prisma db seed
 ```
 
-### 4. Geliştirme Sunucusunu Başlat
+### Çalıştır
 
 ```bash
 npm run dev
 ```
+
+---
+
+## 🔒 Güvenlik Özellikleri
+
+- ✅ Rate Limiting (Dakikada 60 istek limiti)
+- ✅ Content Security Policy (CSP) Headers
+- ✅ HttpOnly Cookies
+- ✅ Davet Kodu ile Kayıt Koruması
+- ✅ Dashboard için Middleware Koruması
+- ✅ Fake PHP Header (Security through obscurity)
 
 ---
 
@@ -172,14 +171,17 @@ npm run dev
 expenseTrack/
 ├── app/                  # Next.js App Router sayfaları
 ├── components/           # React bileşenleri
-├── lib/                  # Yardımcı fonksiyonlar ve config
+├── lib/                  # Yardımcı fonksiyonlar
 ├── prisma/
 │   ├── schema.prisma     # Veritabanı şeması
-│   └── seed.ts           # Başlangıç verileri
-├── public/               # Statik dosyalar
+│   └── seed.ts           # Başlangıç kategorileri
+├── types/                # TypeScript tip tanımları
+├── middleware.ts         # Rate limit & güvenlik
 ├── docker-compose.yml    # Docker yapılandırması
 └── Dockerfile            # App container tanımı
 ```
+
+---
 
 ## 📄 Lisans
 
