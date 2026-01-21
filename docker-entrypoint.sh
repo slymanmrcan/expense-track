@@ -10,4 +10,4 @@ else
 fi
 
 echo "📌 Uygulama başlatılıyor..."
-node server.js
+exec node server.js

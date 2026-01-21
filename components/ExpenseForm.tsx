@@ -3,31 +3,19 @@
 import { useState, useEffect } from 'react'
 import { formatCurrency, formatDateForInput } from '@/lib/utils'
 
-interface Category {
-  id: string
-  name: string
-  icon: string | null
-  isIncome: boolean
-}
+import { Category, Expense, ExpenseType } from '@/types'
 
 interface ExpenseFormProps {
   onSuccess: () => void
-  editingExpense?: {
-    id: string
-    amount: number
-    type: 'INCOME' | 'OUTCOME'
-    categoryId: string
-    description: string | null
-    location: string | null
-    date: string
-  } | null
+  editingExpense?: Expense | null
   onCancelEdit?: () => void
+  className?: string
 }
 
-export default function ExpenseForm({ onSuccess, editingExpense, onCancelEdit }: ExpenseFormProps) {
+export default function ExpenseForm({ onSuccess, editingExpense, onCancelEdit, className }: ExpenseFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
-  const [type, setType] = useState<'INCOME' | 'OUTCOME'>('OUTCOME')
+  const [type, setType] = useState<ExpenseType>('OUTCOME')
   
   const [form, setForm] = useState({
     amount: '',
@@ -111,7 +99,7 @@ export default function ExpenseForm({ onSuccess, editingExpense, onCancelEdit }:
   }
 
   return (
-    <div className="card h-full">
+    <div className={`card h-full ${className || ''}`}>
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm">

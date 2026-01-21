@@ -4,6 +4,16 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Harcama Takip',
   description: 'Kişisel harcama takip uygulaması',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    apple: '/icons/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Harcama Takip',
+  },
 }
 
 export const viewport: Viewport = {

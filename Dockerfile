@@ -3,9 +3,9 @@
 # -------------------------
 FROM node:20-slim AS base
 
-# OpenSSL (Prisma için zorunlu)
+# Install OpenSSL (Required for Prisma) and dumb-init (For signal handling)
 RUN apt-get update -y \
-    && apt-get install -y openssl \
+    && apt-get install -y openssl dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,7 +16,10 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
-RUN npm ci
+
+# Use cache mount to speed up installation
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # -------------------------
 # Build
@@ -25,10 +28,11 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Prisma Client generate
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Next.js build
+# Build Next.js app
+# ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 
 # -------------------------
@@ -37,32 +41,39 @@ RUN npm run build
 FROM base AS runner
 
 ENV NODE_ENV=production
+# ENV NEXT_TELEMETRY_DISABLED 1
 
-# User creation
+# Create a non-root user
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
 WORKDIR /app
 
-# Standalone dosyaları taşı
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Set correct permissions for the nextjs user
+RUN mkdir -p .next \
+    && chown nextjs:nodejs .next
+
+# Copy standalone build (This includes a pruned node_modules)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Prisma CLI ve client için gerekli dosyalar
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Copy necessary files for Prisma CLI (Migrate/Seed)
+# Note: Provide full node_modules if you rely on arbitrary npx commands in entrypoint
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
-# Entrypoint ekle
-COPY docker-entrypoint.sh ./
+# Copy entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-ENV HOME=/home/nextjs
-RUN mkdir -p /home/nextjs && chown -R nextjs:nodejs /home/nextjs
-
+# Switch to non-root user
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Use dumb-init as the entrypoint to handle signals properly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]

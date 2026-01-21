@@ -1,13 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 
-interface StatsData {
-  monthly: { month: string; income: number; outcome: number }[]
-  categories: { name: string; icon: string; total: number }[]
-  thisMonth: { income: number; outcome: number; balance: number }
-}
+import { StatsData } from '@/types'
+
 
 interface StatsModalProps {
   isOpen: boolean

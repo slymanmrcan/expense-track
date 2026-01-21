@@ -2,48 +2,28 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
 import StatsModal from '@/components/StatsModal'
 
-interface Category {
-  id: string
-  name: string
-  icon: string | null
-}
+// Dynamically import MobileExpenseModal to avoid any hydration mismatches if it renders differently
+const MobileExpenseModal = dynamic(() => import('@/components/MobileExpenseModal'), { ssr: false })
 
-interface Expense {
-  id: string
-  amount: number
-  type: 'INCOME' | 'OUTCOME'
-  description: string | null
-  location: string | null
-  date: string
-  categoryId: string
-  category: Category
-}
+import { Category, Expense, User, StatsData } from '@/types'
 
-interface User {
-  id: string
-  username: string
-  firstName: string
-  lastName: string
-}
-
-interface StatsData {
-  monthly: { month: string; income: number; outcome: number }[]
-  categories: { name: string; icon: string; total: number }[]
-  thisMonth: { income: number; outcome: number; balance: number }
-}
 
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
-  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [expenses, setExpenses] = useState<(Expense & { category: Category })[]>([])
   const [stats, setStats] = useState<StatsData | null>(null)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [loading, setLoading] = useState(true)
   const [showStats, setShowStats] = useState(false)
+  
+  // Responsive State
+  const [showMobileForm, setShowMobileForm] = useState(false)
 
   const fetchExpenses = useCallback(async () => {
     const now = new Date()
@@ -94,14 +74,23 @@ export default function DashboardPage() {
 
   const handleSuccess = () => {
     setEditingExpense(null)
+    setShowMobileForm(false) // Close mobile form on success
     fetchExpenses()
     fetchStats()
   }
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense)
-    // Scroll to form on mobile
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (window.innerWidth < 1024) {
+      setShowMobileForm(true)
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const handleMobileFormClose = () => {
+    setShowMobileForm(false)
+    setEditingExpense(null)
   }
 
   if (loading) {
@@ -118,7 +107,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 lg:pb-0">
       {/* Background effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl" />
@@ -203,9 +192,9 @@ export default function DashboardPage() {
         )}
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sol Kolon - Form */}
-          <div className="animate-fade-in">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Sol Kolon - Form (Desktop Only & Sticky) */}
+          <div className="hidden lg:block sticky top-24 animate-fade-in">
             <ExpenseForm
               onSuccess={handleSuccess}
               editingExpense={editingExpense}
@@ -232,11 +221,31 @@ export default function DashboardPage() {
         </div>
       </main>
 
+      {/* Mobile FAB */}
+      <button
+        onClick={() => {
+          setEditingExpense(null)
+          setShowMobileForm(true)
+        }}
+        className="fixed bottom-6 right-6 z-40 lg:hidden w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-purple-500/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+      >
+        <span className="text-3xl font-light">+</span>
+      </button>
+
       {/* Stats Modal */}
       <StatsModal 
         isOpen={showStats} 
         onClose={() => setShowStats(false)} 
         stats={stats} 
+      />
+
+      {/* Mobile Form Modal */}
+      <MobileExpenseModal 
+        isOpen={showMobileForm}
+        onClose={handleMobileFormClose}
+        onSuccess={handleSuccess}
+        editingExpense={editingExpense}
+        onCancelEdit={() => setEditingExpense(null)}
       />
     </div>
   )

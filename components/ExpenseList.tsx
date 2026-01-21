@@ -2,26 +2,15 @@
 
 import { formatCurrency, formatDate } from '@/lib/utils'
 
-interface Category {
-  id: string
-  name: string
-  icon: string | null
-}
+import { Expense, Category } from '@/types'
 
-interface Expense {
-  id: string
-  amount: number
-  type: 'INCOME' | 'OUTCOME'
-  description: string | null
-  location: string | null
-  date: string
+interface ExpenseWithCategory extends Expense {
   category: Category
-  categoryId: string
 }
 
 interface ExpenseListProps {
-  expenses: Expense[]
-  onEdit: (expense: Expense) => void
+  expenses: ExpenseWithCategory[]
+  onEdit: (expense: ExpenseWithCategory) => void
   onDelete: (id: string) => void
 }
 
@@ -44,7 +33,7 @@ export default function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListP
     }
     acc[dateKey].push(expense)
     return acc
-  }, {} as Record<string, Expense[]>)
+  }, {} as Record<string, ExpenseWithCategory[]>)
 
   return (
     <div className="space-y-4">

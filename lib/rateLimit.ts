@@ -1,84 +1,42 @@
-// In-memory rate limiter
-// Restart atınca sıfırlanır - production için Redis kullanılabilir
-
-interface RateLimitEntry {
-  count: number
-  resetTime: number
+interface RateLimitStore {
+  [key: string]: {
+    count: number
+    resetTime: number
+  }
 }
 
-const rateLimitMap = new Map<string, RateLimitEntry>()
+const store: RateLimitStore = {}
 
-// Eski kayıtları temizle (memory leak önleme)
+// Memory leak önlemek için periyodik temizlik
 setInterval(() => {
   const now = Date.now()
-  rateLimitMap.forEach((entry, key) => {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(key)
+  for (const key in store) {
+    if (store[key].resetTime < now) {
+      delete store[key]
     }
-  })
-}, 60 * 1000) // Her dakika temizlik
+  }
+}, 60000)
 
-interface RateLimitConfig {
-  windowMs: number  // Zaman penceresi (ms)
-  maxRequests: number  // Max istek sayısı
-}
-
-interface RateLimitResult {
-  success: boolean
-  remaining: number
-  resetIn: number  // Saniye cinsinden
-}
-
-export function checkRateLimit(
-  identifier: string, 
-  config: RateLimitConfig = { windowMs: 60 * 1000, maxRequests: 5 }
-): RateLimitResult {
+export async function rateLimit(ip: string, limit: number = 60, windowMs: number = 60000) {
   const now = Date.now()
-  const entry = rateLimitMap.get(identifier)
-
-  // Yeni kayıt veya süresi dolmuş
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(identifier, {
-      count: 1,
-      resetTime: now + config.windowMs,
-    })
-    return {
-      success: true,
-      remaining: config.maxRequests - 1,
-      resetIn: Math.ceil(config.windowMs / 1000),
-    }
-  }
-
-  // Limit aşıldı mı?
-  if (entry.count >= config.maxRequests) {
-    return {
-      success: false,
-      remaining: 0,
-      resetIn: Math.ceil((entry.resetTime - now) / 1000),
-    }
-  }
-
-  // Sayacı artır
-  entry.count++
-  return {
-    success: true,
-    remaining: config.maxRequests - entry.count,
-    resetIn: Math.ceil((entry.resetTime - now) / 1000),
-  }
-}
-
-// IP adresini al (proxy arkasında da çalışır)
-export function getClientIP(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
   
-  const realIP = request.headers.get('x-real-ip')
-  if (realIP) {
-    return realIP
+  if (!store[ip] || store[ip].resetTime < now) {
+    store[ip] = {
+      count: 1,
+      resetTime: now + windowMs
+    }
+  } else {
+    store[ip].count++
   }
 
-  // Fallback
-  return 'unknown'
+  const current = store[ip]
+  const remaining = Math.max(0, limit - current.count)
+  const reset = Math.ceil((current.resetTime - now) / 1000)
+
+  return {
+    success: current.count <= limit,
+    limit,
+    remaining,
+    reset
+  }
 }

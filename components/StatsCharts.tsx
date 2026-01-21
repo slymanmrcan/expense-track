@@ -11,7 +11,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
+
 } from 'recharts'
 
 interface MonthlyData {
