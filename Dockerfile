@@ -31,8 +31,9 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Build Next.js app (needs dummy DATABASE_URL for build-time checks)
+# Build Next.js app (needs dummy env vars for build-time checks)
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ENV JWT_SECRET="dummy-jwt-secret-for-build-only"
 RUN npm run build
 
 # -------------------------
